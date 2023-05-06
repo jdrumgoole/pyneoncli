@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=58.3.0", "wheel>=0.37.0", "toml>=0.10.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "pyneoncli"
+version = "0.0.1"
+description = "A Python CLI for the Neon API"
+authors = ["Joe Drumgoole <Joe.Drumgoole@neon.tech>"]
+license = "Apache 2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+# add your project dependencies here
+
+[tool.poetry.dev-dependencies]
+# add your dev dependencies here
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+
+[tool.coverage.report]
+exclude_lines = [
+    # exclude test code from coverage
+    "if __name__ == '__main__':",
+    "if typing.TYPE_CHECKING:",
+]
+
+[tool.pytest]
+addopts = "--cov=my_project --cov-report=html"
+
