@@ -1,6 +1,7 @@
 import argparse
 import os
-
+from neon_api import NeonAPI
+import pprint
 NEON_API_KEY = None
 PGHOST= 5432
 PGHOST="localhost"
@@ -22,7 +23,13 @@ def main(apikey, pghost, pgport, pgurl):
     print(f"API Key: {apikey}")
     print(f"PostgreSQL Host: {pghost}")
     print(f"PostgreSQL Port: {pgport}")
-    print(f"PostgreSQL URL: {pgurl}") 
+    print(f"PostgreSQL URL: {pgurl}")
+    api = NeonAPI(key=apikey)
+    r = api.validate_key()
+    print(r.status_code)
+    print(r.url)
+    pprint.pprint(r.json())
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some arguments.')
@@ -33,11 +40,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Use environment variables to set default values
-    apikey, pghost, pgport, pgurl = detect_defaults()
-    apikey = args.apikey or apikey
-    pghost = args.pghost or pghost
-    pgport = args.pgport or pgportdir
-    pgurl = args.pgurl or pgurl
-
-    main(apikey, pghost, pgport, pgurl)
+    main(args.apikey, args.pghost, args.pgport, args.pgurl)
