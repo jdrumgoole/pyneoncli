@@ -1,9 +1,9 @@
 import requests
 
-
+BASE_URL_V2="https://console.neon.tech/api/v2/"
 class Requester:
 
-    def __init__(self, base_url:str, key=None):
+    def __init__(self, base_url:str=BASE_URL_V2, key=None):
         self._key = key
         self._base_url = base_url
         self._headers = {}
@@ -12,7 +12,10 @@ class Requester:
 
     def request(self, method:str,  operation:str,  **kwargs):
 
-        return requests.request(method, f"{self._base_url}{operation}", headers=self._headers, **kwargs)
+        r = requests.request(method, f"{self._base_url}{operation}", headers=self._headers, **kwargs)
+        r.raise_for_status()
+        print(r.url)
+        return r.json()
 
     def GET(self, operation:str, **kwargs):
         return self.request("GET", operation, **kwargs)
@@ -27,15 +30,21 @@ class Requester:
         return self.request("PATCH", operation, **kwargs)
 class NeonAPI:
 
-    BASE_URL_V2="https://console.neon.tech/api/v2/" 
-
     def __init__(self, base_url:str= BASE_URL_V2, key=None):
-        self.key = key
-        self.base_url = base_url
-        self._requester = Requester(self.base_url, self.key)
+        self._key = key
+        self._base_url = base_url
+        self._requester = Requester(self.base_url, self._key)
+    
+    @property
+    def base_url(self):
+        return self._base_url
+    
+    @base_url.setter
+    def base_url(self, value):
+        self._base_url = value
     
     def validate_key(self):
-        if not self.key:
+        if not self._key:
             return False    
         else:
             for i in self._requester.GET("projects"):
