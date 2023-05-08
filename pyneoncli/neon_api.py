@@ -42,7 +42,7 @@ class NeonAPI:
                 return True
         
     def get_projects(self):
-        projects = self._requester.GET("projects").json()["projects"]
+        projects = self._requester.GET("projects")["projects"]
         for project in projects:
             yield project
     
