@@ -28,7 +28,7 @@ class CLI_Commands:
 
     def list(self):
         for p in self._api.get_projects():
-            print(f"name: {p['name']}")
+            #print(f"name: {p['name']}")
             pprint_color(p)
 
 def get_default_from_env(env_var, default):

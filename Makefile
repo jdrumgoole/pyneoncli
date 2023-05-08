@@ -12,7 +12,7 @@ build:
 
 test:
 	poetry run pytest
-    
-publish:
+
+publish: all
 	poetry publish
 
