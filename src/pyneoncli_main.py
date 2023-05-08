@@ -34,12 +34,6 @@ class CLI_Commands:
 def get_default_from_env(env_var, default):
     return os.getenv(env_var, default
                      )
-def detect_defaults():
-    apikey = os.getenv('APIKEY', 'defaultapikey')
-    pghost = os.getenv('PGHOST', 'localhost')
-    pgport = os.getenv('PGPORT', '5432')
-    pgurl = os.getenv('PGURL', 'postgresql://user:password@localhost:5432/dbname')
-    return apikey, pghost, pgport, pgurl
 
 def main(apikey, pghost, pgport, pgurl, command=None):
     print(f"API Key: {apikey}")
@@ -48,7 +42,7 @@ def main(apikey, pghost, pgport, pgurl, command=None):
     print(f"PostgreSQL URL: {pgurl}")
     api = NeonAPI(key=apikey)
     cmds = CLI_Commands(api)
-    
+
     if command:
         print(f"Command: {command}")
         if "list" in command:
