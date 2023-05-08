@@ -19,16 +19,20 @@ def detect_defaults():
     pgurl = os.getenv('PGURL', 'postgresql://user:password@localhost:5432/dbname')
     return apikey, pghost, pgport, pgurl
 
-def main(apikey, pghost, pgport, pgurl):
+def main(apikey, pghost, pgport, pgurl, command=None):
     print(f"API Key: {apikey}")
     print(f"PostgreSQL Host: {pghost}")
     print(f"PostgreSQL Port: {pgport}")
     print(f"PostgreSQL URL: {pgurl}")
     api = NeonAPI(key=apikey)
-    r = api.validate_key()
-    print(r.status_code)
-    print(r.url)
-    pprint.pprint(r.json())
+    if api.validate_key():
+        print("key is valid")
+    if command:
+        print(f"Command: {command}")
+        if "list" in command:
+            for p in api.get_projects():
+                print(f"name: {p['name']}")
+                pprint.pprint(p)
 
 
 if __name__ == '__main__':
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--pghost', type=str, help='PostgreSQL Host', default=os.getenv( "PGHOST", "localhost"))
     parser.add_argument('--pgport', type=str, help='PostgreSQL Port', default=os.getenv( "PGPORT", "5432"))
     parser.add_argument('--pgurl', type=str, help='PostgreSQL URL', default=os.getenv( "PGURL", "postgresql://localhost:5432"))
-
+    parser.add_argument("cmd", nargs="*", choices=["list"],  help="List projects")
     args = parser.parse_args()
 
-    main(args.apikey, args.pghost, args.pgport, args.pgurl)
+    main(args.apikey, args.pghost, args.pgport, args.pgurl, args.cmd)
