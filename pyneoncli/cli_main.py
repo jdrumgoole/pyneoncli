@@ -60,7 +60,7 @@ def main():
     parser = argparse.ArgumentParser(description='neoncli - python neon api client', 
                                      epilog=f"Version : {__VERSION__}")
     parser.add_argument('--apikey', type=str, help='Specify NEON API Key (env NEON_API_KEY)', default=os.getenv( "NEON_API_KEY"))
-
+    parser.add_argument("--version", action="version", version=f"neoncli {__VERSION__}")
     subparsers = parser.add_subparsers(dest='command', help='Neon commands')
 
     # Projects

@@ -16,3 +16,12 @@ test:
 publish: all
 	poetry publish
 
+test_publish: all
+	poetry publish -r testpypi
+
+test_neoncli:
+	neoncli -h
+	neoncli --version
+	neoncli project --list
+	neoncli branch --project_id red-sea-544606 --list
+
