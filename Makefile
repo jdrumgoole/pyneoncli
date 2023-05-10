@@ -23,5 +23,6 @@ test_neoncli:
 	neoncli -h
 	neoncli --version
 	neoncli project --list
+	neoncli project --create dummy_project > grep id
 	neoncli branch --project_id red-sea-544606 --list
 

@@ -47,48 +47,49 @@ class Requester:
     def PATCH(self, operation:str, **kwargs):
         return self.request("PATCH", operation, **kwargs)
 
-class NeonAPI:
+# class NeonAPI:
 
-    BASE_URL_V2="https://console.neon.tech/api/v2/" 
+#     BASE_URL_V2="https://console.neon.tech/api/v2/" 
 
-    def __init__(self, base_url:str= BASE_URL_V2, key=None):
-        self._key = key
-        self._base_url = base_url
-        self._requester = Requester(self.base_url, self._key)
+#     def __init__(self, base_url:str= BASE_URL_V2, key=None):
+#         self._key = key
+#         self._base_url = base_url
+#         self._requester = Requester(self.base_url, self._key)
     
-    @property
-    def base_url(self):
-        return self._base_url
+#     @property
+#     def base_url(self):
+#         return self._base_url
     
-    @base_url.setter
-    def base_url(self, value):
-        self._base_url = value
+#     @base_url.setter
+#     def base_url(self, value):
+#         self._base_url = value
     
-    def validate_key(self):
-        if not self._key:
-            return False    
-        else:
-            for i in self._requester.GET("projects"):
-                return True
+#     def validate_key(self):
+#         if not self._key:
+#             return False    
+#         else:
+#             for i in self._requester.GET("projects"):
+#                 return True
         
-    # Projects
+#     # Projects
 
-    def get_projects(self):
-        projects = self._requester.GET("projects")["projects"]
-        for project in projects:
-            yield project
+#     def get_projects(self):
+#         projects = self._requester.GET("projects")["projects"]
+#         for project in projects:
+#             yield project
 
-    def create_project(self, name:str):
-        payload = {"project": {"name": name}}
-        self._requester.POST(f"projects", data=payload)
+#     def create_project(self, name:str):
+#         payload = {"project": {"name": name}}
+#         self._requester.POST(f"projects", data=payload)
 
 
 
-    # Branches
-    def get_branches(self, branch_id:str):
-        b = self._requester.GET(f"projects/{branch_id}/branches")
+#     # Branches
+#     def get_branches(self, branch_id:str):
+#         b = self._requester.GET(f"projects/{branch_id}/branches")
         return b
     
+# red-sea-544606
 class NeonObject:
     
         def __init__(self, api_key:str, operation=None) -> None:
@@ -130,7 +131,7 @@ class NeonProject(NeonObject):
     def get_list(self):
             l = self._requester.GET(self._operation)[self._operation]
             for item  in l:
-                yield l
+                yield item
 
     def get_projects(self):
         yield from self.get_list()
@@ -150,7 +151,7 @@ class NeonBranch(NeonObject):
     def __init__(self, api_key:str, project_id) -> None:
         NeonObject.__init__(self, api_key, "branches")
         self._project_id = project_id
-
+                                   
     def get_list(self):
         path = f"projects/{self._project_id}/branches"
         l = self._requester.GET(path)[self._operation]
