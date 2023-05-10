@@ -49,6 +49,8 @@ class Requester:
 
 class NeonAPI:
 
+    BASE_URL_V2="https://console.neon.tech/api/v2/" 
+
     def __init__(self, base_url:str= BASE_URL_V2, key=None):
         self._key = key
         self._base_url = base_url
