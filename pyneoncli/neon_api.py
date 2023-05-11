@@ -17,7 +17,9 @@ class Requester:
         try:
             # print(self._headers)
             # print(kwargs)
-            r = requests.request(method, f"{self._base_url}{operation}", headers=self._headers, **kwargs)
+            path = f"{self._base_url}{operation}"
+            print(path)
+            r = requests.request(method, path, headers=self._headers, **kwargs)
             r.raise_for_status()
             return r.json()
         
@@ -34,7 +36,7 @@ class Requester:
     def GET(self, operation:str, **kwargs):
         return self.request("GET", operation)
 
-    def POST(self, operation:str, data:dict):
+    def POST(self, operation:str, data:dict={}):
         self._headers["Accept"] = "application/json"
         return self.request("POST", operation, data=json.dumps(data))
 
@@ -90,6 +92,38 @@ class Requester:
         return b
     
 # red-sea-544606
+
+def dict_filter(d:dict, keys:list[str]):
+    retValue = {}
+    if keys is None or len(keys) == 0:
+        return d
+    for k,v in flatten(d):
+        if k in keys:
+            retValue[k] = v
+    return retValue
+
+
+def flatten(d:dict, root:str=None):
+    for k, v in d.items():
+        if type(v) == dict:
+            yield from flatten(v, k)
+        else:
+            yield f"{root}.{k}", v
+
+def dict_filter_key(d:dict, key:str):
+
+    if key is None or len(key) == 0:
+        return d
+    if type(d) != dict:
+        raise TypeError("d must be a dict")
+    key_path = key.split(".")
+    for k in d.keys():
+        if k == key_path[0]:
+            if len(key_path) > 1:
+                return dict_filter(d[k], ".".join(key_path[1:]))
+            else:
+                return k, d[k]
+
 class NeonObject:
     
         def __init__(self, api_key:str, operation=None) -> None:
@@ -110,9 +144,6 @@ class NeonObject:
         
         def get(self, id:str):
             return self._requester.GET(f"{self._operation}/{id}")
-
-        def create(self, name:str):
-            pass
 
         def delete(self,id:str):
             pass
@@ -163,10 +194,10 @@ class NeonBranch(NeonObject):
         return self._requester.GET(path)
     
     def create_branch(self, project_id:str):
-        return self._requester.POST(f"/projects/{project_id}/{self.operation}")
+        return self._requester.POST(f"projects/{project_id}/{self.operation}")
     
-    def delete_project(self, id:str):
-        return self._requester.DELETE(f"{self.operation}/{id}")
+    def delete_branch(self, project_id:str, branch_id:str):
+        return self._requester.DELETE(f"projects/{project_id}/{self.operation}/{branch_id}")
 
     def __str__(self) -> str:
         return f"api_key={self._api_key}\noperation={self._operation}"

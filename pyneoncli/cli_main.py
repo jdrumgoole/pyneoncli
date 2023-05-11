@@ -9,15 +9,18 @@ from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import JsonLexer
 
-from pyneoncli.neon_api import  NeonBranch, NeonProject
+from pyneoncli.neon_api import  NeonBranch, NeonProject, dict_filter
 from pyneoncli.version import __VERSION__
 
 
 NEON_API_KEY = None
 
-def pprint_color(obj: Any, nocolor: bool) -> None:
+def pprint_color(obj: dict, nocolor: bool, filter:list[str]) -> None:
     """Pretty-print in color."""
-    json_str = json.dumps(obj, indent=4, sort_keys=True)
+    if obj is None or type(obj) != dict:
+        return TypeError("pprint_color: obj must be a dict")
+    d = dict_filter(obj, filter)    
+    json_str = json.dumps(d, indent=4, sort_keys=True)
     if nocolor:
         print(json_str)
     else:
@@ -33,18 +36,8 @@ class CLI_Commands:
     @staticmethod
     def print_list(l:list, nocolor: bool= False, fields:list=None):
         for i in l:
-            d = CLI_Commands.filter_dict(i, fields)
+            d = dict_filter(i, fields)
             pprint_color(d, nocolor)
-
-    @staticmethod
-    def filter_dict(input_dict, fieldfilter):
-        if fieldfilter is None or len(fieldfilter) == 0:
-            return input_dict
-        output_dict = {}
-        for field in fieldfilter:
-            if field in input_dict:
-                output_dict[field] = input_dict[field]
-        return output_dict
     
     @staticmethod
     def project(args:argparse.Namespace):
@@ -53,15 +46,18 @@ class CLI_Commands:
         if args.create:
             p = projects.create_project(args.create)
             pprint_color(p, args.nocolor)
-        if args.get_id:
-            p = projects.get(args.get_id)
-            pprint_color(p, args.nocolor)
+        if args.get and args.project_id:
+            p = projects.get(args.project_id)
+            pprint_color(p, args.nocolor, args.fieldfilter)
+        else:
+            print(f"Yo must specify a project id with --project_id for the get command")
+
         if args.list:
                 projects = projects.get_projects()
                 CLI_Commands.print_list(projects, args.nocolor, args.fieldfilter)
         if args.delete:
             p = projects.delete_project(args.delete)
-            pprint_color(p, args.nocolor)
+            pprint_color(p, args.nocolor, args.fieldfilter)
 
     @staticmethod
     def branch(args:argparse):
@@ -69,16 +65,30 @@ class CLI_Commands:
             branches = NeonBranch(api_key=args.apikey, project_id=args.project_id)
         else:
             print("You must specify a project id with --project_id for all branch operations")
+
         if args.list:
             branches = branches.get_list()
             CLI_Commands.print_list(branches, args.nocolor, args.fieldfilter)
-        if args.get and args.branch_id:
-            b = branches.get(args. project_id, args.branch_id)
-            pprint_color(b, args.nocolor)
-        elif args.get:
-            print("You must specify a branch id with --branch_id for get branch")
-        else:
-            print(f"No operation specified for branch {args.branch_id}")
+        if args.get:
+            if args.branch_id:
+                b = branches.get(args. project_id, args.branch_id)
+                pprint_color(b, args.nocolor, args.fieldfilter)
+            else:
+                print("You must specify a branch id with --branch_id for get branch")
+        if args.create:
+            if args.project_id:
+                b = branches.create_branch(args.project_id)
+                pprint_color(b, args.nocolor, args.fieldfilter)
+            else:
+                print("You must specify a project id with --project_id for create branch")
+        if args.delete:
+            if args.project_id and args.branch_id:
+                b = branches.delete_branch(args.project_id, args.branch_id)
+                pprint_color(b, args.nocolor)
+            elif args.project_id is None:
+                print("You must specify a project id with --project_id for delete branch")
+            else:    
+                print("You must specify a branch id with --branch_id for delete branch")
 
 
 
@@ -97,9 +107,9 @@ def main():
     project_parser = subparsers.add_parser('project', help='maninpulate Neon projects')
     project_parser.add_argument('-p', '--project_id', type=str, dest="project_id", help='specify project id')
     project_parser.add_argument('-c', '--create', type=str,  help='create project')
-    project_parser.add_argument('-g', '--get_id', type=str,  help='project details')
+    project_parser.add_argument('-g', '--get', action="store_true", default=False, help='get project details')
     project_parser.add_argument('-l', '--list', help='List projects', action='store_true')
-    project_parser.add_argument('-d', '--delete', type=str,  help='delete project')
+    project_parser.add_argument('-d', '--delete', action="store_true", default=False,  help='delete project')
 
 
     project_parser.set_defaults(func=CLI_Commands.project)
@@ -111,8 +121,8 @@ def main():
     branch_parser.add_argument('-i', '--branch_id', type=str, dest="branch_id",  help='branch details')
     branch_parser.add_argument('-l', '--list', help='List branches', action='store_true')
     branch_parser.add_argument('-c', '--create', default=False, action="store_true",  help='create branch')
-    branch_parser.add_argument('-g', '--get', action="store_true", default=False, help='get project details')
-    branch_parser.add_argument('-d', '--delete', type=str, dest="branch_id",  help='delete branch')
+    branch_parser.add_argument('-g', '--get', action="store_true", default=False, help='get branch details')
+    branch_parser.add_argument('-d', '--delete', action="store_true", default=False,  help='delete branch')
 
     branch_parser.set_defaults(func=CLI_Commands.branch)
 
