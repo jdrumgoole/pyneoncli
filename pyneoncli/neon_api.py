@@ -158,6 +158,10 @@ class NeonBranch(NeonObject):
         for i in l:
             yield i
 
+    def get(self, project_id:str, branch_id:str):
+        path = f"projects/{project_id}/branches/{branch_id}"
+        return self._requester.GET(path)
+    
     def create_branch(self, project_id:str):
         return self._requester.POST(f"/projects/{project_id}/{self.operation}")
     

@@ -20,9 +20,11 @@ test_publish: all
 	poetry publish -r testpypi
 
 test_neoncli:
-	neoncli -h
-	neoncli --version
-	neoncli project --list
-	neoncli project --create dummy_project > grep id
-	neoncli branch --project_id red-sea-544606 --list
+	neoncli -h > /dev/null
+	neoncli --version > /dev/null
+	neoncli project --list > /dev/null
+	neoncli --nocolor project --list > /dev/null
+	neoncli --fieldfilter id --nocolor project --list > /dev/null
+	neoncli branch --list --project_id red-sea-544606 --list > /dev/null
+	neoncli branch --get --project_id red-sea-544606 --branch_id br-muddy-wildflower-293772 > /dev/null
 

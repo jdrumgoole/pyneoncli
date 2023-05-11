@@ -53,9 +53,9 @@ class CLI_Commands:
         if args.create:
             p = projects.create_project(args.create)
             pprint_color(p, args.nocolor)
-        if args.id:
-            p = projects.get(args.id)
-            pprint_color(p, args)
+        if args.get_id:
+            p = projects.get(args.get_id)
+            pprint_color(p, args.nocolor)
         if args.list:
                 projects = projects.get_projects()
                 CLI_Commands.print_list(projects, args.nocolor, args.fieldfilter)
@@ -65,10 +65,22 @@ class CLI_Commands:
 
     @staticmethod
     def branch(args:argparse):
-        branches = NeonBranch(api_key=args.apikey, project_id=args.project_id)
+        if args.project_id:
+            branches = NeonBranch(api_key=args.apikey, project_id=args.project_id)
+        else:
+            print("You must specify a project id with --project_id for all branch operations")
         if args.list:
             branches = branches.get_list()
             CLI_Commands.print_list(branches, args.nocolor, args.fieldfilter)
+        if args.get and args.branch_id:
+            b = branches.get(args. project_id, args.branch_id)
+            pprint_color(b, args.nocolor)
+        elif args.get:
+            print("You must specify a branch id with --branch_id for get branch")
+        else:
+            print(f"No operation specified for branch {args.branch_id}")
+
+
 
 def main():
     parser = argparse.ArgumentParser(description='neoncli - python neon api client', 
@@ -83,8 +95,9 @@ def main():
 
     # Projects
     project_parser = subparsers.add_parser('project', help='maninpulate Neon projects')
+    project_parser.add_argument('-p', '--project_id', type=str, dest="project_id", help='specify project id')
     project_parser.add_argument('-c', '--create', type=str,  help='create project')
-    project_parser.add_argument('-i', '-id', type=str, dest="id",  help='project details')
+    project_parser.add_argument('-g', '--get_id', type=str,  help='project details')
     project_parser.add_argument('-l', '--list', help='List projects', action='store_true')
     project_parser.add_argument('-d', '--delete', type=str,  help='delete project')
 
@@ -95,9 +108,12 @@ def main():
     branch_parser = subparsers.add_parser('branch', help='manuinplate Neon branches')
     branch_parser.add_argument('-p', '--project_id', type=str, dest="project_id",  
                                help='specify project id', required=True)
+    branch_parser.add_argument('-i', '--branch_id', type=str, dest="branch_id",  help='branch details')
     branch_parser.add_argument('-l', '--list', help='List branches', action='store_true')
-    branch_parser.add_argument('-c', '--create', type=str, dest="name",  help='create branch')
-    branch_parser.add_argument('-d', '--delete', type=str, dest="id",  help='delete branch')
+    branch_parser.add_argument('-c', '--create', default=False, action="store_true",  help='create branch')
+    branch_parser.add_argument('-g', '--get', action="store_true", default=False, help='get project details')
+    branch_parser.add_argument('-d', '--delete', type=str, dest="branch_id",  help='delete branch')
+
     branch_parser.set_defaults(func=CLI_Commands.branch)
 
     args = parser.parse_args()
