@@ -3,6 +3,8 @@ import pprint
 import sys
 import requests
 
+from pyneoncli.printer import Printer
+
 BASE_URL_V2="https://console.neon.tech/api/v2/"
 class Requester:
 
@@ -12,6 +14,7 @@ class Requester:
         self._headers = {}
         self._headers['Authorization'] = f"Bearer {self._key}"
         self._headers['Content-Type'] = "application/json"
+
 
     def request(self, method:str,  operation:str,  **kwargs):
 
@@ -25,11 +28,7 @@ class Requester:
             return r.json()
         
         except requests.exceptions.HTTPError as err:
-            print("HTTP Error")
-            print(r.url)
-            print(r.status_code)
-            print(r.headers)
-            print(err)
+            Printer.error(err)
             sys.exit(1)
 
         return r.json()
@@ -50,28 +49,8 @@ class Requester:
     def PATCH(self, operation:str, **kwargs):
         return self.request("PATCH", operation, **kwargs)
 
-    
-# red-sea-544606
-
-def dict_filter(d:dict, keys:list[str]):
-    retValue = {}
-    if keys is None or len(keys) == 0:
-        return d
-    for k,v in flatten(d):
-        if k in keys:
-            retValue[k] = v
-    return retValue
-
-
-def flatten(d:dict, root:str=None):
-    for k, v in d.items():
-        if type(v) == dict:
-            yield from flatten(v, k)
-        else:
-            if root is None:
-                yield k, v
-            else:
-                yield f"{root}.{k}", v
+    def HEAD(self, operation:str, **kwargs):
+        return self.request("HEAD", operation, **kwargs)
 
 class NeonObject:
     
@@ -105,7 +84,7 @@ class NeonObject:
             return f"NeonObject(api_key={self._api_key}, operation={self._operation}, id={self._id})"
         
         def get(self, id:str):
-            self._data = self._requester.GET(f"{self._operation}/{id}")
+            self._data = self._requester.GET(f"{self._operation}/{id}")["project"]
             return self._data
 
         def delete(self,id:str):
@@ -118,7 +97,8 @@ class NeonProject(NeonObject):
 
     def __init__(self, api_key:str, id=None) -> None:
         NeonObject.__init__(self, api_key, "projects", id)
-        self.get_project(self._id)
+        if self.id  is not None:
+            self._data = self.get_project(self._id)
 
     @property
     def project(self):
@@ -131,11 +111,12 @@ class NeonProject(NeonObject):
 
     def get_project(self, id:str):
          self._data = self.get(id)
+         self._id = self._data["id"]
          return self._data
     
-    def create_project(self, name:str):
+    def create_project(self, project_name:str):
         # Project name must be unique
-        payload = {"project": {"name": name}}
+        payload = {"project": {"name": project_name}}
         self._data = self._requester.POST(f"projects", data=payload)
         self._id = self._data["project"]["id"]
         return self._data
@@ -146,20 +127,25 @@ class NeonProject(NeonObject):
 
 class NeonBranch(NeonObject):
 
-    def __init__(self, api_key:str, id:str, project_id) -> None:
+    def __init__(self, api_key:str, project_id:str, id:str=None) -> None:
         NeonObject.__init__(self, api_key=api_key, operation="branches", id=id)
         self._project_id = project_id
-        self._data = self.get(self._id)
+        self._id = id
+        self._data = None
+        if id is not None:
+            self._data = self.get(self._id)
                                    
-    def get_list(self):
+    def get_branches(self):
         path = f"projects/{self._project_id}/branches"
         l = self._requester.GET(path)[self._operation]
         for i in l:
             yield i
 
-    def get(self, id:str):
-        path = f"projects/{self._project_id}/branches/{branch_id}"
-        self._data = self._requester.GET(path)
+    def get_branch(self, id:str):
+        path = f"projects/{self._project_id}/branches/{id}"
+        self._data = self._requester.GET(path)["branch"]
+        self._id = self._data["id"]
+        #print(type(self._data))
         return self._data
     
     def create_branch(self):

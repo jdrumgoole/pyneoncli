@@ -9,10 +9,6 @@ NEON_API_KEY=os.getenv( "NEON_API_KEY")
 assert NEON_API_KEY is not None
 
 @pytest.fixture
-def neonapi():
-    return NeonAPI(key=NEON_API_KEY)
-
-@pytest.fixture
 def neonproject():
     return NeonProject(api_key=NEON_API_KEY)    
 
