@@ -114,7 +114,7 @@ class NeonProject(NeonObject):
          self._id = self._data["id"]
          return self._data
     
-    def create_project(self, project_name:str):
+    def create_project(self, project_name:str) -> dict:
         # Project name must be unique
         payload = {"project": {"name": project_name}}
         self._data = self._requester.POST(f"projects", data=payload)
@@ -127,13 +127,13 @@ class NeonProject(NeonObject):
 
 class NeonBranch(NeonObject):
 
-    def __init__(self, api_key:str, project_id:str, id:str=None) -> None:
+    def __init__(self, api_key:str, project_id:str=None, id:str=None) -> None:
         NeonObject.__init__(self, api_key=api_key, operation="branches", id=id)
         self._project_id = project_id
         self._id = id
         self._data = None
-        if id is not None:
-            self._data = self.get(self._id)
+        if id is not None and project_id is not None:
+            self._data = self.get_branch(self._id)
                                    
     def get_branches(self):
         path = f"projects/{self._project_id}/branches"

@@ -2,8 +2,8 @@ import os
 import pprint
 import pytest
 
-from pyneoncli.neon_api import Requester, NeonProject, dict_filter
-
+from pyneoncli.neon_api import Requester, NeonProject
+from pyneoncli.printer import Printer, dict_filter
 
 NEON_API_KEY=os.getenv( "NEON_API_KEY")
 assert NEON_API_KEY is not None
