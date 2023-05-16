@@ -109,6 +109,22 @@ class NeonProject(NeonObject):
         for item  in l:
             yield item
 
+    def get_project_ids(self):
+        l = self._requester.GET(self._operation)[self._operation]
+        for item  in l:
+            yield item["id"]
+
+    def get_project_names(self):
+        l = self._requester.GET(self._operation)[self._operation]
+        for item  in l:
+            yield item["id"]
+
+    def get_project_name_id(self):
+        l = self._requester.GET(self._operation)[self._operation]
+        for item  in l:
+            yield item["name"], item["id"]
+
+
     def get_project(self, id:str):
          self._data = self.get(id)
          self._id = self._data["id"]
