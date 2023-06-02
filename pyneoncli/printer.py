@@ -179,7 +179,6 @@ class Printer:
         return [Printer.parse_name_id(name_id) for name_id in name_id_list]
 
     def pprint(self, obj) -> None:
-
         json_str = json.dumps(obj, indent=4, sort_keys=True)
         if self._nocolor or not sys.stdout.isatty():
             print(json_str)

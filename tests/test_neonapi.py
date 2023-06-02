@@ -1,23 +1,65 @@
 import os
-import pprint
 import unittest
-import time
 
-from pyneoncli.rawneonapi import RawNeonAPI
+from pyneoncli.neon import NeonProject
+from pyneoncli.neonapi import RawNeonAPI, NeonAPI
 from pyneoncli.printer import dict_filter
+from tests.testutils import generate_random_name
 
 NEON_API_KEY = os.getenv("NEON_API_KEY")
 assert NEON_API_KEY is not None, "NEON_API_KEY environment variable must be set"
 
 
+class TestRawNeonAPI(unittest.TestCase):
+    def setUp(self):
+        self._rawapi = RawNeonAPI(NEON_API_KEY)
+
+    def test_create_raw_project(self):
+        project_name = generate_random_name(10)
+        project = self._rawapi.create_project(project_name)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        self._rawapi.delete_project(project.id)
+
+    def test_create_delete_list_project(self):
+        project_name = "test_project"
+        project = self._rawapi.create_project(project_name)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        project_id = project.id
+        self.assertTrue(any((p.id == project_id) for p in self._rawapi.get_projects()))
+        project = self._rawapi.delete_project(project_id)
+        self.assertEqual(project.name, project_name)
+        self.assertTrue(any((p.id != project_id) for p in self._rawapi.get_projects()))
+
+    def test_create_delete_branch(self):
+        project_name = "branch_test_project"
+        project = self._rawapi.create_project(project_name)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        self.assertEqual(project.name, project_name)
+        project = self._rawapi.get_project_by_id(project.id)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        self.assertEqual(project.name, project_name)
+        branch = self._rawapi.create_branch(project.id)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        self.assertEqual(branch.project_id, project.id)
+        self._rawapi.delete_branch(project.id, branch.id)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        self._rawapi.delete_project(project.id)
+
+
 class TestNeonAPI(unittest.TestCase):
     def setUp(self):
-        self._api = RawNeonAPI(NEON_API_KEY)
+        self._api = NeonAPI(NEON_API_KEY)
+        self._raw_api = RawNeonAPI(NEON_API_KEY)
+
+    def test_get_operations(self):
+        pass
 
     def test_create_project(self):
-        project = self._api.create_project("test_project")
-        self.assertEqual(self._api.is_complete(project.id), True)
-        self._api.delete_project(project.id)
+        project_name = generate_random_name(10)
+        project = self._api.create_project(project_name)
+        self.assertTrue(type(project), NeonProject)
+        self.assertEqual(project.name, project_name)
+        dp = self._api.delete_project(project.id)
 
     def test_create_delete_list_project(self):
         project_name = "test_project"
@@ -30,19 +72,17 @@ class TestNeonAPI(unittest.TestCase):
         self.assertTrue(any((p.id != project_id) for p in self._api.get_projects()))
 
     def test_create_delete_branch(self):
-        project_name = "branch_test_project"
+        project_name = generate_random_name()
         project = self._api.create_project(project_name)
-        self.assertEqual(self._api.is_complete(project.id), True)
-        self.assertEqual(project.name, project_name)
-        project = self._api.get_project_by_id(project.id)
-        self.assertEqual(self._api.is_complete(project.id), True)
         self.assertEqual(project.name, project_name)
         branch = self._api.create_branch(project.id)
-        self.assertEqual(self._api.is_complete(project.id), True)
+        self.assertEqual(project.name, project_name)
         self.assertEqual(branch.project_id, project.id)
         self._api.delete_branch(project.id, branch.id)
-        self.assertEqual(self._api.is_complete(project.id), True)
         self._api.delete_project(project.id)
+
+
+class TestDictFilter(unittest.TestCase):
 
     def test_dict_filter(self):
         d = {

@@ -39,9 +39,9 @@ class CommandExecutionTestCase(unittest.TestCase):
 
         project_id = create_doc["id"]
         output = self._test_command_execution(f"neoncli list --project_id {project_id}")
-        ids = [x for x in Printer.parse_name_id_list(output.splitlines()) if (project_name, project_id) == x]
-
-        self.assertTrue((project_id, project_name) in ids, ids)
+        list_doc = json.loads(output)
+        self.assertEqual(list_doc["name"], project_name)
+        self.assertEqual(list_doc["id"], project_id)
 
         output = self._test_command_execution(f"neoncli project --delete {project_id}")
         delete_doc = json.loads(output)
@@ -61,12 +61,10 @@ class CommandExecutionTestCase(unittest.TestCase):
         output = self._test_command_execution(f"neoncli project --create {project_name}")
         branch_test_project_doc = json.loads(output)
         self.assertEqual(branch_test_project_doc["name"], project_name)
-        project_id = branch_test_project_doc["project"]["id"]
+        project_id = branch_test_project_doc["id"]
 
         output = self._test_command_execution(f"neoncli list --branches {project_id}")
         starting_line_count = len(output.splitlines())
-
-        sleep(5)
 
         output = self._test_command_execution(f"neoncli branch --create {project_id}")
         branch_doc = json.loads(output)

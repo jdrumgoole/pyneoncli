@@ -1,9 +1,10 @@
+import os
 import sys
 import json
 import argparse
 
-from pyneoncli.neon import NeonBranch, NeonProject
-from pyneoncli.rawneonapi import NeonAPI, NeonAPIException, NeonTimeoutException
+from pyneoncli.neon import NeonBranch, NeonProject, NeonOperations, NeonOperationsDetails
+from pyneoncli.neonapi import NeonAPI, NeonAPIException, NeonTimeoutException
 from pyneoncli.printer import ColorText, Printer
 
 
@@ -50,11 +51,11 @@ class CLIList(CLICommands):
         elif type(project_ids) is list:
             if len(project_ids) == 0:
                 for p in self._api.get_projects():
-                    print(f"{self._p.project_id(p)}")
+                    self._p.print(p.data)
             else:
                 for project_id in project_ids:
                     p = self._api.get_project_by_id(project_id)
-                    print(f"{self._p.project_id(p)}")
+                    self._p.print(p.data)
         else:
             print(f"Wrong argument type for list_projects: {type(project_ids)}")
             sys.exit(1)
@@ -83,26 +84,34 @@ class CLIProject(CLICommands):
     def __init__(self, args: argparse.Namespace) -> None:
         super().__init__(args)
 
+    def create_one_project(self, project_id: str):
+        project = self._api.create_project(project_id)
+        self._p.print(project.data)
+        return project
+
     def create_project(self, project_names: list[str]) -> list[str]:
         project_ids = []
         if project_names is not None and type(project_names) is list:
             for project_name in project_names:
-                project = self._api.create_project(project_name)
-                project_ids.append(project.id)
-                self._p.print(project.data)
+                p = self.create_one_project(project_name)
+                project_ids.append(p.id)
         return project_ids
 
-    def delete_project(self, project_ids: list[str]):
-        ids = []
+    def delete_one_project(self, project_id: str):
+        project = self._api.delete_project(project_id)
+        self._p.print(project.data)
+        return project
+
+    def delete_projects(self, project_ids: list[str]):
+        project_ids = []
         if project_ids is not None and type(project_ids) is list:
             for project_id in project_ids:
-                project = self._api.delete_project(project_id)
-                self._p.print(project.data)
-                ids.append(project.id)
+                p = self.delete_one_project(project_id)
+                project_ids.append(p.id)
         else:
             print("You must specify a project id with --project_id for delete project")
             sys.exit(1)
-        return ids
+        return project_ids
 
     def delete_all_projects(self):
         project_ids = []
@@ -122,13 +131,16 @@ class CLIBranch(CLICommands):
     def __init__(self, args: argparse.Namespace) -> None:
         super().__init__(args)
 
+    def create_one_branch(self, project_id: str):
+        project = self._api.get_project_by_id(project_id)
+        branch = self._api.create_branch(project.id)
+        self._p.print(branch.data)
+        return branch
+
     def create_branch(self, project_ids: list[str]):
         branches = []
         for project_id in project_ids:
-            np = NeonProject()
-            project = self._api.get_project_by_id(project_id)
-            branch = self._api.create_branch(project_id)
-            self._p.print(branch.data)
+            branch = self.create_one_branch(project_id)
             branches.append(branch)
         return branches
 
@@ -144,13 +156,30 @@ class CLIBranch(CLICommands):
         return b
 
 
+class CLIOperations(CLICommands):
+
+    def __init__(self, args: argparse.Namespace) -> None:
+        super().__init__(args)
+
+    def get_list_of_operations(self, project_id: str) -> list[NeonOperations]:
+        ops = self._api.get_list_of_operations(project_id)
+        for op in ops:
+            self._p.print(op.data)
+        return ops
+
+    def get_operations_details(self, project_id: str, operation_id: str) -> NeonOperationsDetails:
+        op = self._api.get_operation_details(project_id, operation_id)
+        self._p.print(op.data)
+        return op
+
+
 class CLIDispatcher:
 
     def __init__(self) -> None:
         self._printer = Printer()
 
-    def dispatch_list(self, args: argparse.Namespace):
-
+    @staticmethod
+    def dispatch_list(args: argparse.Namespace):
         try:
             any_args = False
             l = CLIList(args)
@@ -182,6 +211,9 @@ class CLIDispatcher:
             print(timeout_error)
             sys.exit(1)
 
+    @staticmethod
+    def dispatch_main(args: argparse.Namespace):
+        pass
 
     @staticmethod
     def dispatch_project(args: argparse.Namespace):
@@ -189,7 +221,7 @@ class CLIDispatcher:
         if args.create_names:
             p.create_project(args.create_names)
         if args.delete_ids:
-            p.delete_project(args.delete_ids)
+            p.delete_projects(args.delete_ids)
         if args.delete_all:
             p.delete_all_projects()
 
@@ -200,3 +232,12 @@ class CLIDispatcher:
             b.create_branch(args.project_ids)
         if args.delete_ids:
             b.delete_branch(args.delete_ids)
+
+    @staticmethod
+    def dispatch_operations(args: argparse.Namespace):
+        o = CLIOperations(args=args)
+        if args.project_id:
+            o.get_list_of_operations(args.project_id)
+        elif args.operations_id:
+            project_id, operations_id = args.operations_id.split(":")
+            o.get_operations_details(project_id, operations_id)

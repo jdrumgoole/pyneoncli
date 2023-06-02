@@ -6,7 +6,7 @@ from typing import Iterator
 
 import requests
 
-from pyneoncli.neon import NeonProject, NeonBranch, NeonOperation
+from pyneoncli.neon import NeonProject, NeonBranch, NeonOperations, NeonOperationsDetails
 from pyneoncli.neonfunction import NeonFunction as nf
 
 BASE_URL_V2 = "https://console.neon.tech/api/v2/"
@@ -51,9 +51,24 @@ class NeonAPIException(requests.exceptions.HTTPError):
     def text(self):
         return self._text
 
+    @staticmethod
+    def blank_if_none(label: str, value: str, end="\n") -> str:
+        if value is None:
+            return ""
+        else:
+            return f"{label}: {value}{end}"
+
     def __str__(self):
-        h = pprint.pformat(self._header)
-        return f'\noperation: {self._operation}\nmethod: {self._method}\nheader: {h}\npath: {self._path}\nerror: {self._err}\nmessage: {self._text}'
+        if self._header is None:
+            h = ""
+        else:
+            h = f"header: {pprint.pformat(self._header)}"
+        m = self.blank_if_none("method", self._method)
+        o = self.blank_if_none("operation", self._operation)
+        p = self.blank_if_none("path", self._path)
+        msg = self.blank_if_none("message", self._text)
+
+        return f'{p}{h}{m}{o}{msg}'
 
 
 class NeonTimeoutException(Exception):
@@ -79,7 +94,6 @@ class Requester:
 
         except requests.exceptions.HTTPError as err:
             raise NeonAPIException(path=path, method=method, err=err, text=r.text)
-
 
     def GET(self, operation: str, **kwargs):
         return self.request("GET", operation)
@@ -109,25 +123,35 @@ class RawNeonAPI:
         self._api_key = api_key
         self._requester = Requester(key=self._api_key)
 
-    def get_operations(self, project_id: str) -> Iterator[NeonOperation]:
+    def get_list_of_operations(self, project_id: str) -> Iterator[NeonOperations]:
         try:
             path = f"{nf.projects}/{project_id}/{nf.operations}"
             for item in self._requester.GET(path)[str(nf.operations)]:
-                yield NeonOperation(item)
+                yield NeonOperations(item)
         except NeonAPIException as err:
-            err.operation = "get_operations"
+            err.operation = "get_list_of_operations"
             raise err
 
-    def is_complete(self, project_id: str, sleep_time: float = 0.5, timeout:float=30.0) -> bool:
+    def get_operation_details(self, project_id:str, operation_id:str) -> NeonOperationsDetails:
+        try:
+            path = f"{nf.projects}/{project_id}/{nf.operations}/{operation_id}"
+            return NeonOperationsDetails(self._requester.GET(path))
+        except NeonAPIException as err:
+            err.operation = "get_operation_details"
+            raise err
+
+    def is_complete(self, project_id: str, sleep_time: float = 0.5, timeout: float = 30.0) -> bool:
         complete, _ = self.completion_time(project_id, sleep_time=sleep_time, timeout=timeout)
         return complete
 
-    def completion_time(self, project_id: str, sleep_time: float = 0.5, timeout:float=30.0) -> tuple[bool, float]:
+    def completion_time(self, project_id: str, sleep_time: float = 0.5, timeout: float = 30.0) -> tuple[bool, float]:
         start = time.time()
+        so_far = start
         while True:
-            for operation in self.get_operations(project_id):
+            for operation in self.get_list_of_operations(project_id):
                 if operation.status == "finished":
-                    return True, time.time() - start
+                    so_far = time.time() - start
+                    return True, so_far
                 else:
                     time.sleep(sleep_time)
                     so_far = time.time() - start
@@ -148,7 +172,7 @@ class RawNeonAPI:
             data = self._requester.DELETE(f"{nf.projects}/{project_id}")["project"]
             return NeonProject(data=data)
         except NeonAPIException as err:
-            err.operation = "delete_project"
+            err.operation = "delete_projects"
             raise err
 
     def get_projects(self) -> Iterator[NeonProject]:
@@ -208,7 +232,7 @@ class RawNeonAPI:
     def get_branches(self, project_id: str) -> Iterator[NeonBranch]:
         try:
             return (NeonBranch(item) for item in
-                self._requester.GET(f"{nf.projects}/{project_id}/{nf.branches}")[str(nf.branches)])
+                    self._requester.GET(f"{nf.projects}/{project_id}/{nf.branches}")[str(nf.branches)])
         except NeonAPIException as err:
             err.operation = "get_branches"
             raise err
@@ -217,7 +241,7 @@ class RawNeonAPI:
 class NeonAPI(RawNeonAPI):
     TIMEOUT_DEFAULT = 30.0  # 30 seconds
 
-    def __init__(self, api_key: str = None, sleep_time:float=0.1,  timeout: float = TIMEOUT_DEFAULT) -> None:
+    def __init__(self, api_key: str = None, sleep_time: float = 0.1, timeout: float = TIMEOUT_DEFAULT) -> None:
         self._api_key = api_key
         self._timeout = timeout
         self._sleep_time = sleep_time
@@ -228,5 +252,42 @@ class NeonAPI(RawNeonAPI):
         if self.is_complete(project_id=p.id, sleep_time=self._sleep_time, timeout=self._timeout):
             return p
         else:
-            raise NeonTimeoutException(f"Project creation for {project_name}timed out after {self._timeout} seconds")
+            raise NeonTimeoutException(f"Project creation for {project_name} timed out after {self._timeout} seconds")
 
+    def delete_project(self, project_id: str) -> NeonProject:
+        return super().delete_project(project_id)
+
+    def get_project_by_id(self, project_id: str) -> NeonProject:
+        p = super().get_project_by_id(project_id)
+        if self.is_complete(project_id=p.id, sleep_time=self._sleep_time, timeout=self._timeout):
+            return p
+        else:
+            raise NeonTimeoutException(f"get_project_by_id timed out after {self._timeout} seconds for {p.id}")
+
+    def get_projects_by_id(self, project_ids: list[str] = None) -> Iterator[NeonProject]:
+        for p in super().get_projects_by_id(project_ids=project_ids):
+            if self.is_complete(project_id=p.id, sleep_time=self._sleep_time, timeout=self._timeout):
+                yield p
+            else:
+                raise NeonTimeoutException(f"get_project_by_id timed out after {self._timeout} seconds for {p.id}")
+
+    def create_branch(self, project_id: str) -> NeonBranch:
+        b = super().create_branch(project_id)
+        if self.is_complete(project_id=project_id, sleep_time=self._sleep_time, timeout=self._timeout):
+            return b
+        else:
+            raise NeonTimeoutException(f"Branch creation for {project_id} timed out after {self._timeout} seconds")
+
+    def get_branch_by_id(self, project_id: str, branch_id: str) -> NeonBranch:
+        b = super().get_branch_by_id(project_id, branch_id)
+        if self.is_complete(project_id=project_id, sleep_time=self._sleep_time, timeout=self._timeout):
+            return b
+        else:
+            raise NeonTimeoutException(f"get_branch_by_id timed out after {self._timeout} seconds for {b.id}")
+
+    def get_branches(self, project_id: str) -> Iterator[NeonBranch]:
+        for b in super().get_branches(project_id):
+            if self.is_complete(project_id=project_id, sleep_time=self._sleep_time, timeout=self._timeout):
+                yield b
+            else:
+                raise NeonTimeoutException(f"get_branches timed out after {self._timeout} seconds for {b.id}")

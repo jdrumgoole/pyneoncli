@@ -29,7 +29,7 @@ class NeonObject:
         return f"NeonObject(data={self._data})"
 
 
-class NeonOperation(NeonObject):
+class NeonOperations(NeonObject):
 
     def __init__(self, data: dict) -> None:
         super().__init__(data=data)
@@ -40,20 +40,18 @@ class NeonOperation(NeonObject):
         return self._data["project_id"]
 
     @property
-    def branch_id(self):
-        return self._data["branch_id"]
-
-    @property
-    def endpoint_id(self):
-        return self._data["endpoint_id"]
-
-    @property
     def status(self):
         return self._data["status"]
 
     @property
     def action(self):
         return self._data["action"]
+
+
+class NeonOperationsDetails(NeonObject):
+    def __init__(self, data: dict) -> None:
+        super().__init__(data=data)
+        self._type = "operation_details"
 
 
 class NeonProject(NeonObject):

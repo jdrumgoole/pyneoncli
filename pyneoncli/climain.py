@@ -20,16 +20,17 @@ Version : {__VERSION__}
 def main():
 
     load_dotenv()
-    dispatcher = CLIDispatcher()
-    parser = argparse.ArgumentParser(description='neoncli - python neon api client (Python 3.8+))',
+    parser = argparse.ArgumentParser(description='neoncli -  neon command line client',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      epilog=epilog)
     parser.add_argument('--apikey', type=str, help='Specify NEON API Key (env NEON_API_KEY)', default=os.getenv( "NEON_API_KEY"))
     parser.add_argument("--version", action="version", version=f"neoncli {__VERSION__}")
     parser.add_argument("--nocolor", action="store_true", default=False, help="Turn off Color output")
     parser.add_argument( '-f', '--fieldfilter', action="append", type=str, help='Enter field values to filter results on')
+    parser.set_defaults(func=CLIDispatcher.dispatch_main)
 
-    subparsers = parser.add_subparsers(dest='command', help='Neon commands')
+    subparsers = parser.add_subparsers(dest='command', description='Invoke a specific neon command',
+                                       help='e.g. neoncli list will list all projects')
 
     # List
     list_parser = subparsers.add_parser('list', help='List Neon objects')
@@ -38,7 +39,7 @@ def main():
     list_parser.add_argument('-b', '--branches', action="append", dest="project_ids", help='List branches associated with project_id(s)')
     list_parser.add_argument('-pi', '--project_id', action="append", dest="project_ids",  type=str, help='List projects specificed by project_id')
     list_parser.add_argument('-bi', '--branch_id', action="append", dest="branch_ids",  type=str, help='List branches specificed by project_id:branch_id')
-    list_parser.set_defaults(func=dispatcher.dispatch_list)
+    list_parser.set_defaults(func=CLIDispatcher.dispatch_list)
 
     # Projects
     project_parser = subparsers.add_parser('project', help='Create and delete Neon projects')
@@ -46,7 +47,7 @@ def main():
     project_parser.add_argument('-d', '--delete', action="append", dest="delete_ids",  type=str, help='delete project')
     project_parser.add_argument('--delete_all', action="store_true", default=False,  help='delete all projects')
 
-    project_parser.set_defaults(func=dispatcher.dispatch_project)
+    project_parser.set_defaults(func=CLIDispatcher.dispatch_project)
 
     # Branches
     branch_parser = subparsers.add_parser('branch', help='create and delete Neon branches')
@@ -54,7 +55,16 @@ def main():
     branch_parser.add_argument('-d', '--delete', action="append", dest="delete_ids", type=str,  help='delete branches specified by project_id:branch_id')
     branch_parser.add_argument('--delete_all', action="store_true", default=False,  help='delete all branches')
 
-    branch_parser.set_defaults(func=dispatcher.dispatch_branch)
+    branch_parser.set_defaults(func=CLIDispatcher.dispatch_branch)
+
+    #operations
+    operations_parser = subparsers.add_parser('operations', help='operations on Neon objects')
+    operations_parser.add_argument('-l', '--list', dest="project_id",  type=str,
+                                   help='List operations associated by project_id')
+    operations_parser.add_argument('-o', '--operations_id',  type=str,
+                                   help='List operations associated by project_id:operation_id')
+
+    operations_parser.set_defaults(func=CLIDispatcher.dispatch_operations)
 
     args = parser.parse_args()
     args.func(args)
