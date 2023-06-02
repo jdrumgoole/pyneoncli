@@ -53,6 +53,13 @@ class NeonOperationsDetails(NeonObject):
         super().__init__(data=data)
         self._type = "operation_details"
 
+    @property
+    def status(self):
+        return self._data["status"]
+
+    def action(self):
+        return self._data["action"]
+
 
 class NeonProject(NeonObject):
 
@@ -63,6 +70,11 @@ class NeonProject(NeonObject):
     @property
     def project(self):
         return self._data
+
+    @property
+    def project_id(self):
+        return self._data["id"]
+
 
 
 class NeonBranch(NeonObject):

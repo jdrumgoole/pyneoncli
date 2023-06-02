@@ -123,6 +123,15 @@ class RawNeonAPI:
         self._api_key = api_key
         self._requester = Requester(key=self._api_key)
 
+    def get_first_operation(self, project_id: str) -> NeonOperations:
+        try:
+            path = f"{nf.projects}/{project_id}/{nf.operations}"
+            for item in self._requester.GET(path)[str(nf.operations)]:
+                return NeonOperations(item)
+        except NeonAPIException as err:
+            err.operation = "get_first_operation"
+            raise err
+
     def get_list_of_operations(self, project_id: str) -> Iterator[NeonOperations]:
         try:
             path = f"{nf.projects}/{project_id}/{nf.operations}"
@@ -135,7 +144,7 @@ class RawNeonAPI:
     def get_operation_details(self, project_id:str, operation_id:str) -> NeonOperationsDetails:
         try:
             path = f"{nf.projects}/{project_id}/{nf.operations}/{operation_id}"
-            return NeonOperationsDetails(self._requester.GET(path))
+            return NeonOperationsDetails(self._requester.GET(path)["operation"])
         except NeonAPIException as err:
             err.operation = "get_operation_details"
             raise err
@@ -147,16 +156,17 @@ class RawNeonAPI:
     def completion_time(self, project_id: str, sleep_time: float = 0.5, timeout: float = 30.0) -> tuple[bool, float]:
         start = time.time()
         so_far = start
+        op = self.get_first_operation(project_id)
         while True:
-            for operation in self.get_list_of_operations(project_id):
-                if operation.status == "finished":
-                    so_far = time.time() - start
-                    return True, so_far
-                else:
-                    time.sleep(sleep_time)
-                    so_far = time.time() - start
-                    if so_far > timeout:
-                        return False, so_far
+            detail = self.get_operation_details(project_id, op.id)
+            if detail.status == "finished":
+                so_far = time.time() - start
+                return True, so_far
+            else:
+                time.sleep(sleep_time)
+                so_far = time.time() - start
+                if so_far > timeout:
+                    return False, so_far
 
     def create_project(self, project_name: str) -> NeonProject:
         payload = {"project": {"name": project_name}}
