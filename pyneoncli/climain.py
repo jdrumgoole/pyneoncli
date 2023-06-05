@@ -26,6 +26,8 @@ def main():
     parser.add_argument('--apikey', type=str, help='Specify NEON API Key (env NEON_API_KEY)', default=os.getenv( "NEON_API_KEY"))
     parser.add_argument("--version", action="version", version=f"neoncli {__VERSION__}")
     parser.add_argument("--nocolor", action="store_true", default=False, help="Turn off Color output")
+    parser.add_argument('--yes', action="store_true", default=False, help='Answer yes to all prompts')
+
     parser.add_argument( '-f', '--fieldfilter', action="append", type=str, help='Enter field values to filter results on')
     parser.set_defaults(func=CLIDispatcher.dispatch_main)
 

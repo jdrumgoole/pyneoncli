@@ -6,7 +6,7 @@ from argparse import Namespace
 
 from pyneoncli.clicommands import CLIProject, CLIBranch
 from pyneoncli.neon import NeonProject, NeonBranch
-from pyneoncli.neonapi import NeonAPI
+from pyneoncli.neonapi import NeonAPI, NeonAPIException
 
 
 def generate_random_name(length):
@@ -16,8 +16,8 @@ def generate_random_name(length):
 class TestCLICommands(unittest.TestCase):
 
     def setUp(self):
-        apikey = os.getenv("NEON_API_KEY")
-        self._api = NeonAPI(api_key=apikey)
+        self._apikey = os.getenv("NEON_API_KEY")
+        self._api = NeonAPI(api_key=self._apikey)
 
     def test_namespace(self):
         apikey = os.getenv("NEON_API_KEY")
@@ -27,14 +27,22 @@ class TestCLICommands(unittest.TestCase):
 
     def test_project(self):
         project_name = generate_random_name(10)
-        apikey = os.getenv("NEON_API_KEY")
-        self.assertTrue(apikey)
-        cp = CLIProject(Namespace(apikey=apikey, nocolor=False, fieldfilter=None, verbose=False))
+        self.assertTrue(self._apikey)
+        cp = CLIProject(Namespace(apikey=self._apikey, nocolor=False, fieldfilter=None, verbose=False))
         cp = cp.create_one_project(project_name)
         self.assertTrue(type(cp) == NeonProject)
         self.assertEqual(cp.name, project_name)
         dp = self._api.delete_project(cp.id)
         self.assertEqual( dp.id, cp.id)
+
+    def test_delete_project(self):
+        cp = CLIProject(Namespace(apikey=self._apikey, nocolor=False, fieldfilter=None, verbose=False))
+        p1=cp.create_one_project(generate_random_name(10))
+        p2=cp.create_one_project(generate_random_name(10))
+        p3=cp.create_one_project(generate_random_name(10))
+        cp.delete_projects([p1.id, p2.id, p3.id], check=False)
+        self.assertRaises(NeonAPIException, self._api.get_project_by_id, p1.id)
+        self.assertRaises(NeonAPIException, self._api.get_project_by_id, p3.id)
 
     def test_branch(self):
         project_name = generate_random_name(10)

@@ -149,17 +149,16 @@ class RawNeonAPI:
             err.operation = "get_operation_details"
             raise err
 
-    def is_complete(self, project_id: str, sleep_time: float = 0.5, timeout: float = 30.0) -> bool:
+    def is_complete(self, project_id: str, sleep_time: float = 0.1, timeout: float = 30.0) -> bool:
         complete, _ = self.completion_time(project_id, sleep_time=sleep_time, timeout=timeout)
         return complete
 
-    def completion_time(self, project_id: str, sleep_time: float = 0.5, timeout: float = 30.0) -> tuple[bool, float]:
+    def completion_time(self, project_id: str, sleep_time: float = 0.1, timeout: float = 30.0) -> tuple[bool, float]:
         start = time.time()
         so_far = start
-        op = self.get_first_operation(project_id)
         while True:
-            detail = self.get_operation_details(project_id, op.id)
-            if detail.status == "finished":
+            op = self.get_first_operation(project_id)
+            if op.status == "finished":
                 so_far = time.time() - start
                 return True, so_far
             else:

@@ -10,6 +10,8 @@ from pyneoncli.printer import Printer
 
 class CommandExecutionTestCase(unittest.TestCase):
 
+    def setUp(self) -> None:
+        self._apiKey = os.getenv("NEON_API_KEY")
     def _test_command_execution(self, command):
 
         try:
@@ -23,7 +25,7 @@ class CommandExecutionTestCase(unittest.TestCase):
     def test_neon_command_help(self):
         output = self._test_command_execution("neoncli --help")
         lines = output.splitlines()
-        self.assertEqual(lines[0], "usage: neoncli [-h] [--apikey APIKEY] [--version] [--nocolor] [-f FIELDFILTER]",
+        self.assertEqual(lines[0], "usage: neoncli [-h] [--apikey APIKEY] [--version] [--nocolor] [--yes]",
                          lines[0])
 
     def test_neon_command_project(self, project_id=None):
@@ -31,8 +33,7 @@ class CommandExecutionTestCase(unittest.TestCase):
         output = self._test_command_execution(f"neoncli list")
         starting_line_count = len(output.splitlines())
         project_name = "test_project"
-        apiKey = os.getenv("NEON_API_KEY")
-        self.assertTrue(apiKey is not None, "NEON_API_KEY environment variable must be set")
+        self.assertTrue(self._apiKey is not None, "NEON_API_KEY environment variable must be set")
         output = self._test_command_execution(f"neoncli project --create {project_name}")
         create_doc = json.loads(output)
         self.assertEqual(create_doc["name"], project_name)
@@ -43,7 +44,7 @@ class CommandExecutionTestCase(unittest.TestCase):
         self.assertEqual(list_doc["name"], project_name)
         self.assertEqual(list_doc["id"], project_id)
 
-        output = self._test_command_execution(f"neoncli project --delete {project_id}")
+        output = self._test_command_execution(f"neoncli --yes project --delete {project_id}")
         delete_doc = json.loads(output)
         self.assertEqual(delete_doc["name"], project_name)
 
@@ -68,16 +69,16 @@ class CommandExecutionTestCase(unittest.TestCase):
 
         output = self._test_command_execution(f"neoncli branch --create {project_id}")
         branch_doc = json.loads(output)
-        self.assertEqual(branch_doc["branch"]["project_id"], project_id)
+        self.assertEqual(branch_doc["project_id"], project_id)
 
-        branch_id = branch_doc["branch"]["id"]
+        branch_id = branch_doc["id"]
         output = self._test_command_execution(f"neoncli list --branch_id {project_id}:{branch_id}")
 
-        output = self._test_command_execution(f"neoncli branch --delete {project_id}:{branch_id}")
+        output = self._test_command_execution(f"neoncli --yes branch --delete {project_id}:{branch_id}")
         delete_doc = json.loads(output)
         self.assertEqual(delete_doc["id"], branch_id)
 
-        output = self._test_command_execution(f"neoncli project --list")
+        output = self._test_command_execution(f"neoncli list --branches {project_id}")
 
         ending_line_count = len(output.splitlines())
 

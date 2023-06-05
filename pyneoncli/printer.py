@@ -199,7 +199,7 @@ class Printer:
         else:
             self.pprint(obj)
 
-    def name_id_list(self, d:list[dict], name_label, id_label):
+    def name_id_list(self, d:list[NeonObject], name_label, id_label):
         if d is None:
             return []
         else:

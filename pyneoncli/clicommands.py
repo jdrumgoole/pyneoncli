@@ -8,6 +8,19 @@ from pyneoncli.neonapi import NeonAPI, NeonAPIException, NeonTimeoutException
 from pyneoncli.printer import ColorText, Printer
 
 
+def prompt(msg: str, expected: list[str] = None, yes:bool=False) -> str|None:
+    if yes:
+        return "y"
+    response = input(msg)
+    if expected is None:
+        return response
+    else:
+        if response in expected:
+            return response
+        else:
+            return None
+
+
 class CLICommands:
 
     def __init__(self, args: argparse.Namespace) -> None:
@@ -84,8 +97,8 @@ class CLIProject(CLICommands):
     def __init__(self, args: argparse.Namespace) -> None:
         super().__init__(args)
 
-    def create_one_project(self, project_id: str):
-        project = self._api.create_project(project_id)
+    def create_one_project(self, project_name: str):
+        project = self._api.create_project(project_name)
         self._p.print(project.data)
         return project
 
@@ -93,37 +106,68 @@ class CLIProject(CLICommands):
         project_ids = []
         if project_names is not None and type(project_names) is list:
             for project_name in project_names:
-                p = self.create_one_project(project_name)
-                project_ids.append(p.id)
+                try:
+                    p = self.create_one_project(project_name)
+                    project_ids.append(p.id)
+                except NeonAPIException as e:
+                    print(f"{self._c.red(msg='Error creating project: ')} {e.path}")
+                    print(f"  Status Code : {e.err.response.status_code}")
+                    print(f"  Reason      : {e.err.response.reason}")
+                    print(f"  Text        : {e.err.response.text}")
         return project_ids
 
-    def delete_one_project(self, project_id: str):
-        project = self._api.delete_project(project_id)
-        self._p.print(project.data)
-        return project
+    def delete_one_project(self, project_id: str, check=True):
+        if check:
+            resp = prompt(msg=f"Are you sure you want to delete project {project_id}? (y/n): ",
+                          expected=["y", "Y", "yes", "Yes", "YES"],
+                          yes=self._args.yes)
+            if resp:
+                project = self._api.delete_project(project_id)
+                self._p.print(project.data)
+                return project
+            else:
+                print("Aborted.")
+                return None
+        else:
+            project = self._api.delete_project(project_id)
+            self._p.print(project.data)
+            return project
 
-    def delete_projects(self, project_ids: list[str]):
-        project_ids = []
+    def delete_projects(self, project_ids: list[str], check=True) -> list[str]:
+        deleted_project_ids = []
         if project_ids is not None and type(project_ids) is list:
             for project_id in project_ids:
-                p = self.delete_one_project(project_id)
-                project_ids.append(p.id)
+                try:
+                    p = self.delete_one_project(project_id, check=check)
+                    deleted_project_ids.append(p.id)
+                except NeonAPIException as e:
+                    print(f"{self._c.red(msg='Error deleting project: ')} {e.path}")
+                    print(f"  Status Code : {e.err.response.status_code}")
+                    print(f"  Reason      : {e.err.response.reason}")
+                    print(f"  Text        : {e.err.response.text}")
         else:
             print("You must specify a project id with --project_id for delete project")
             sys.exit(1)
-        return project_ids
+        return deleted_project_ids
 
     def delete_all_projects(self):
         project_ids = []
         any_ids = False
-        for project in self._api.get_projects():
-            self._api.delete_project(project.id)
-            project_ids.append(project.id)
-            print(f"{project.id} deleted")
-            any_ids = True
-        if not any_ids:
-            print("No projects to delete")
-        return project_ids
+        resp = prompt(msg=f"Are you sure you want to delete all projects? (y/n): ",
+                      expected=["y", "Y", "yes", "Yes", "YES"],
+                      yes=self._args.yes)
+        if resp is not None:
+            for project in self._api.get_projects():
+                self._api.delete_project(project.id)
+                project_ids.append(project.id)
+                print(f"{project.id} deleted")
+                any_ids = True
+            if not any_ids:
+                print("No projects to delete")
+            return project_ids
+        else:
+            print("Aborting delete all projects")
+            sys.exit(0)
 
 
 class CLIBranch(CLICommands):
@@ -148,8 +192,8 @@ class CLIBranch(CLICommands):
         if branch_ids is not None and type(branch_ids) is list:
             for id in branch_ids:
                 pid, bid = id.strip().split(":")
-                b = self._api.delete_branch(pid.bid)
-                self._p.print(b)
+                b = self._api.delete_branch(pid, bid)
+                self._p.print(b.data)
         else:
             print("You must specify a branch id with --branch_id for delete branch")
             sys.exit(1)

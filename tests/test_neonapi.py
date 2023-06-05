@@ -4,7 +4,7 @@ import unittest
 from pyneoncli.neon import NeonProject
 from pyneoncli.neonapi import RawNeonAPI, NeonAPI
 from pyneoncli.printer import dict_filter
-from tests.testutils import generate_random_name
+from tests.utils import generate_random_name
 
 NEON_API_KEY = os.getenv("NEON_API_KEY")
 assert NEON_API_KEY is not None, "NEON_API_KEY environment variable must be set"
