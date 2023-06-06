@@ -91,6 +91,18 @@ class CLIList(CLICommands):
                 if this_bid == b.id:
                     print(f"  {self._p.branch_id(b)}")
 
+    def list_operations(self, project_ids: list[str]):
+        for id in project_ids:
+            ops = self._api.get_list_of_operations(id)
+            for op in ops:
+                self._p.print(op.data)
+
+    def list_operations_details(self, op_ids: list[str]):
+        for op_id in op_ids:
+            project_id, operation_id = op_id.strip().split(":")
+            op = self._api.get_operation_details(project_id, operation_id)
+            self._p.print(op.data)
+
 
 class CLIProject(CLICommands):
 
@@ -167,7 +179,7 @@ class CLIProject(CLICommands):
             return project_ids
         else:
             print("Aborting delete all projects")
-            sys.exit(0)
+            return None
 
 
 class CLIBranch(CLICommands):
@@ -197,24 +209,6 @@ class CLIBranch(CLICommands):
         else:
             print("You must specify a branch id with --branch_id for delete branch")
             sys.exit(1)
-        return b
-
-
-class CLIOperations(CLICommands):
-
-    def __init__(self, args: argparse.Namespace) -> None:
-        super().__init__(args)
-
-    def get_list_of_operations(self, project_id: str) -> list[NeonOperations]:
-        ops = self._api.get_list_of_operations(project_id)
-        for op in ops:
-            self._p.print(op.data)
-        return ops
-
-    def get_operations_details(self, project_id: str, operation_id: str) -> NeonOperationsDetails:
-        op = self._api.get_operation_details(project_id, operation_id)
-        self._p.print(op.data)
-        return op
 
 
 class CLIDispatcher:
@@ -239,9 +233,14 @@ class CLIDispatcher:
             elif args.projects:
                 l.list_projects()
                 any_args = True
-
             elif args.branch_ids:
                 l.list_branches_for_branch_ids(args.branch_ids)
+                any_args = True
+            elif args.op_project_ids:
+                l.list_operations(args.op_project_ids)
+                any_args = True
+            elif args.op_ids:
+                l.list_operations_details(args.op_ids)
                 any_args = True
 
             if not any_args:
@@ -277,11 +276,3 @@ class CLIDispatcher:
         if args.delete_ids:
             b.delete_branch(args.delete_ids)
 
-    @staticmethod
-    def dispatch_operations(args: argparse.Namespace):
-        o = CLIOperations(args=args)
-        if args.project_id:
-            o.get_list_of_operations(args.project_id)
-        elif args.operations_id:
-            project_id, operations_id = args.operations_id.split(":")
-            o.get_operations_details(project_id, operations_id)

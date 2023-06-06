@@ -38,9 +38,16 @@ def main():
     list_parser = subparsers.add_parser('list', help='List Neon objects')
     list_parser.add_argument('-a', '--all', action="store_true", default=False, help='List all objects')
     list_parser.add_argument('-p', '--projects', action='store_true', default=False, help='list projects')
-    list_parser.add_argument('-b', '--branches', action="append", dest="project_ids", help='List branches associated with project_id(s)')
-    list_parser.add_argument('-pi', '--project_id', action="append", dest="project_ids",  type=str, help='List projects specificed by project_id')
-    list_parser.add_argument('-bi', '--branch_id', action="append", dest="branch_ids",  type=str, help='List branches specificed by project_id:branch_id')
+    list_parser.add_argument('-b', '--branches', action="append", dest="project_ids",
+                             help='List branches associated with project_id(s)')
+    list_parser.add_argument('-pi', '--project_id', action="append", dest="project_ids",  type=str,
+                             help='List projects specificed by project_id')
+    list_parser.add_argument('-bi', '--branch_id', action="append", dest="branch_ids",  type=str,
+                             help='List branches specified by project_id:branch_id')
+    list_parser.add_argument('-o', '--operations', action="append", dest="op_project_ids",
+                             help='List operations associated with project_id(s)')
+    list_parser.add_argument('-d', '--operation_details', action="append", dest="op_ids",
+                             help='Get operation details for project_id:operation_id')
     list_parser.set_defaults(func=CLIDispatcher.dispatch_list)
 
     # Projects
@@ -58,15 +65,6 @@ def main():
     branch_parser.add_argument('--delete_all', action="store_true", default=False,  help='delete all branches')
 
     branch_parser.set_defaults(func=CLIDispatcher.dispatch_branch)
-
-    #operations
-    operations_parser = subparsers.add_parser('operations', help='operations on Neon objects')
-    operations_parser.add_argument('-l', '--list', dest="project_id",  type=str,
-                                   help='List operations associated by project_id')
-    operations_parser.add_argument('-o', '--operations_id',  type=str,
-                                   help='List operations associated by project_id:operation_id')
-
-    operations_parser.set_defaults(func=CLIDispatcher.dispatch_operations)
 
     args = parser.parse_args()
     args.func(args)

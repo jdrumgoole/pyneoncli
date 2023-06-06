@@ -1,17 +1,18 @@
 import json
 import os
 import subprocess
-from time import sleep
 import unittest
 
-from pyneoncli.neon import NeonProject
-from pyneoncli.printer import Printer
+from pyneoncli.neonapi import NeonAPI
+from .utils import generate_random_name
 
 
 class CommandExecutionTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         self._apiKey = os.getenv("NEON_API_KEY")
+        self._api = NeonAPI(self._apiKey)
+
     def _test_command_execution(self, command):
 
         try:
@@ -84,6 +85,17 @@ class CommandExecutionTestCase(unittest.TestCase):
 
         self.assertEqual(starting_line_count, ending_line_count)
 
+    def test_neon_operations(self):
+
+        project = self._api.create_project(generate_random_name())
+        ops = self._api.get_list_of_operations(project.id)
+        op = next(ops)
+        detail = self._api.get_operation_details(project.id, op.id)
+        output = self._test_command_execution(f"neoncli list  --operations {project.id}")
+        self.assertTrue(len(output.splitlines()) > 0)
+        output = self._test_command_execution(f"neoncli --nocolor list  --operation_detail {project.id}:{op.id}")
+        op_doc = json.loads(output)
+        self.assertEqual(op_doc["id"], op.id)
 
 if __name__ == '__main__':
     unittest.main()
