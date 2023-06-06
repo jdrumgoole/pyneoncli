@@ -97,5 +97,13 @@ class CommandExecutionTestCase(unittest.TestCase):
         op_doc = json.loads(output)
         self.assertEqual(op_doc["id"], op.id)
 
+    def test_list_by_name(self):
+        project1 = self._api.create_project(generate_random_name())
+        project2 = self._api.create_project(generate_random_name())
+        output = self._test_command_execution(f"neoncli list --project_name {project1.name}")
+        print(output)
+        self._api.delete_project(project1.id)
+        self._api.delete_project(project2.id)
+
 if __name__ == '__main__':
     unittest.main()

@@ -138,6 +138,7 @@ class Printer:
         id_label_len, id_label = self.color_len(self._c.green, id_label)
         name = p.name
         id = p.id
+
         name_str = "{0:{1}} {2:{3}}".format(name_label, name_label_len, name, len(name) + 5)
         id_str = "{0:{1}} {2:{3}}".format(id_label, id_label_len, id, len(id))
         return f"{name_str} {id_str}"

@@ -51,11 +51,13 @@ class CLIList(CLICommands):
         super().__init__(args)
 
     def list_all(self):
+        p = None
         for p in self._api.get_projects():
-
             print(f"{self._p.project_id(p)}")
             for branch in self._api.get_branches(p.id):
                 print(f"  {self._p.branch_id(branch)}")
+        if p is None:
+            print("No projects found")
 
     def list_projects(self, project_ids: list[str] = None):
         if project_ids is None:
@@ -103,6 +105,13 @@ class CLIList(CLICommands):
             op = self._api.get_operation_details(project_id, operation_id)
             self._p.print(op.data)
 
+    def list_projects_by_name(self, project_names:list[str]):
+        for project in self._api.get_projects():
+            if project.name in project_names:
+                print(f"{self._p.project_id(project)}")
+                for branch in self._api.get_branches(project.id):
+                    print(f"  {self._p.branch_id(branch)}")
+
 
 class CLIProject(CLICommands):
 
@@ -138,7 +147,7 @@ class CLIProject(CLICommands):
                 self._p.print(project.data)
                 return project
             else:
-                print("Aborted.")
+                print("Aborted project deletion")
                 return None
         else:
             project = self._api.delete_project(project_id)
@@ -151,7 +160,8 @@ class CLIProject(CLICommands):
             for project_id in project_ids:
                 try:
                     p = self.delete_one_project(project_id, check=check)
-                    deleted_project_ids.append(p.id)
+                    if p is not None:
+                        deleted_project_ids.append(p.id)
                 except NeonAPIException as e:
                     print(f"{self._c.red(msg='Error deleting project: ')} {e.path}")
                     print(f"  Status Code : {e.err.response.status_code}")
@@ -229,6 +239,9 @@ class CLIDispatcher:
                 any_args = True
             elif args.project_ids:
                 l.list_projects(args.project_ids)
+                any_args = True
+            elif args.project_names:
+                l.list_projects_by_name(args.project_names)
                 any_args = True
             elif args.projects:
                 l.list_projects()

@@ -1,6 +1,6 @@
-.PHONY: all clean build test publish
+.PHONY: all clean build test test_cmds publish
 
-all: clean build test
+all: clean build test test_cmds
 
 clean:
 	poetry env remove --all
@@ -12,17 +12,22 @@ build:
 
 test:
 	poetry run pytest
+
+test_cmds:
 	neoncli -h > /dev/null
 	neoncli --version > /dev/null
-	neoncli project --list > /dev/null
-	neoncli project --get --project_id red-sea-544606 > /dev/null
+	neoncli list  > /dev/null
+	neoncli list -h > /dev/null
 	neoncli project -h > /dev/null
-	neoncli --nocolor project --list > /dev/null
-	neoncli --fieldfilter id --nocolor project --list > /dev/null
-	neoncli branch --list --project_id red-sea-544606  > /dev/null
-	neoncli branch --get --project_id red-sea-544606 --branch_id br-muddy-wildflower-293772 > /dev/null
 	neoncli branch -h > /dev/null
-	neoncli branch --fieldfilter id --create --project_id red-sea-544606 
+	neoncli project --create "dummy" > /dev/null
+	neoncli  list --project_name dummy | head -1 | cut -f3 -d: > dummy_project_id
+	neoncli list --branches `cat dummy_project_id` > /dev/null
+	neoncli --nocolor list > /dev/null
+	neoncli --fieldfilter id --nocolor list> /dev/null
+	neoncli --fieldfilter id branch --create `cat dummy_project_id` > /dev/null
+	neoncli --yes project --delete `cat dummy_project_id` > /dev/null
+	rm dummy_project_id
 
 publish: all
 	poetry publish

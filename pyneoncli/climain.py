@@ -38,6 +38,8 @@ def main():
     list_parser = subparsers.add_parser('list', help='List Neon objects')
     list_parser.add_argument('-a', '--all', action="store_true", default=False, help='List all objects')
     list_parser.add_argument('-p', '--projects', action='store_true', default=False, help='list projects')
+    list_parser.add_argument('-n', '--project_name', action='append', dest="project_names",
+                             help='list all projects by project name')
     list_parser.add_argument('-b', '--branches', action="append", dest="project_ids",
                              help='List branches associated with project_id(s)')
     list_parser.add_argument('-pi', '--project_id', action="append", dest="project_ids",  type=str,
