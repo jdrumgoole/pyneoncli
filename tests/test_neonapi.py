@@ -1,41 +1,64 @@
 import os
+import pprint
 import unittest
 
+from pyneoncli.configfile import NeonConfigFile
 from pyneoncli.neon import NeonProject
-from pyneoncli.neonapi import RawNeonAPI, NeonAPI
+from pyneoncli.neonapi import NeonAPI
+from pyneoncli.rawneonapi import RawNeonAPI
 from pyneoncli.printer import dict_filter
 from tests.utils import generate_random_name
-
-NEON_API_KEY = os.getenv("NEON_API_KEY")
-assert NEON_API_KEY is not None, "NEON_API_KEY environment variable must be set"
 
 
 class TestRawNeonAPI(unittest.TestCase):
     def setUp(self):
-        self._rawapi = RawNeonAPI(NEON_API_KEY)
+        self._cfg = NeonConfigFile()
+        self._rawapi = RawNeonAPI(self._cfg.api_key)
+        self._api = NeonAPI(self._cfg.api_key)
+        self._projects = []
+
+    def tearDown(self):
+        for project in self._projects:
+            self._rawapi.delete_project(project.id)
 
     def test_create_raw_project(self):
-        project_name = generate_random_name(10)
+        project_name = generate_random_name(prefix="test_create_raw_project", length=3)
         project = self._rawapi.create_project(project_name)
+        self._projects.append(project)
         self.assertEqual(self._rawapi.is_complete(project.id), True)
-        self._rawapi.delete_project(project.id)
+        self.assertEqual(project.name, project_name)
+        self.assertGreater(len(project.id), 0)
+
+    def test_paginate(self):
+        project_count = self._rawapi.count_projects()
+        project1 = self._rawapi.create_project(generate_random_name(prefix="test_paginate", length=3))
+        project2 = self._rawapi.create_project(generate_random_name(prefix="test_paginate", length=3))
+        project3 = self._rawapi.create_project(generate_random_name(prefix="test_paginate", length=3))
+        self._projects.extend([project1, project2, project3])
+
+        projects = list(self._rawapi.get_projects())
+        self.assertEqual(len(projects), project_count + 3)
+
+        self.assertTrue(all((isinstance(p, NeonProject) for p in projects)))
 
     def test_create_delete_list_project(self):
-        project_name = "test_project"
+        project_name = generate_random_name(prefix="test_create_delete_list_project", length=3)
         project = self._rawapi.create_project(project_name)
         self.assertEqual(self._rawapi.is_complete(project.id), True)
         project_id = project.id
-        self.assertTrue(any((p.id == project_id) for p in self._rawapi.get_projects()))
+        self.assertTrue(any((p.id == project_id) for p in self._rawapi.get_projects(batch_size=2)))
         project = self._rawapi.delete_project(project_id)
         self.assertEqual(project.name, project_name)
-        self.assertTrue(any((p.id != project_id) for p in self._rawapi.get_projects()))
+        for p in self._rawapi.get_projects():
+            self.assertTrue(p.id != project_id)
 
     def test_create_delete_branch(self):
-        project_name = "branch_test_project"
+        project_name = generate_random_name(prefix="test_create_delete_branch", length=3)
         project = self._rawapi.create_project(project_name)
+        self._projects.append(project)
         self.assertEqual(self._rawapi.is_complete(project.id), True)
         self.assertEqual(project.name, project_name)
-        project = self._rawapi.get_project_by_id(project.id)
+        project = self._rawapi.get_project(project.id)
         self.assertEqual(self._rawapi.is_complete(project.id), True)
         self.assertEqual(project.name, project_name)
         branch = self._rawapi.create_branch(project.id)
@@ -43,43 +66,57 @@ class TestRawNeonAPI(unittest.TestCase):
         self.assertEqual(branch.project_id, project.id)
         self._rawapi.delete_branch(project.id, branch.id)
         self.assertEqual(self._rawapi.is_complete(project.id), True)
-        self._rawapi.delete_project(project.id)
+
+    def test_operations(self):
+        project_name = generate_random_name(prefix="test_operations", length=3)
+        project = self._api.create_project(project_name)
+        self._projects.append(project)
+        self.assertEqual(self._rawapi.is_complete(project.id), True)
+        for op in self._api.get_operations(project.id):
+            self.assertEqual(op.project_id, project.id)
+            op_inner = self._api.get_operation(project.id, op.id)
+            self.assertEqual(op_inner, op)
 
 
 class TestNeonAPI(unittest.TestCase):
     def setUp(self):
-        self._api = NeonAPI(NEON_API_KEY)
-        self._raw_api = RawNeonAPI(NEON_API_KEY)
+        self._cfg = NeonConfigFile()
+        self._api = NeonAPI(self._cfg.api_key)
+        self._projects = []
+
+    def tearDown(self):
+        for project in self._projects:
+            self._api.delete_project(project.id)
 
     def test_get_operations(self):
         pass
 
     def test_create_project(self):
-        project_name = generate_random_name(10)
+        project_name = generate_random_name(prefix="test_create_project", length=10)
         project = self._api.create_project(project_name)
+        self._projects.append(project)
         self.assertTrue(type(project), NeonProject)
         self.assertEqual(project.name, project_name)
-        dp = self._api.delete_project(project.id)
 
     def test_create_delete_list_project(self):
-        project_name = "test_project"
+        project_name = generate_random_name(prefix="test_create_delete_list_project", length=3)
         project = self._api.create_project(project_name)
         self.assertEqual(self._api.is_complete(project.id), True)
-        project_id = project.id
-        self.assertTrue(any((p.id == project_id) for p in self._api.get_projects()))
-        project = self._api.delete_project(project_id)
-        self.assertEqual(project.name, project_name)
-        self.assertTrue(any((p.id != project_id) for p in self._api.get_projects()))
+        self._api.delete_project(project.id)
+
+        for p in self._api.get_projects():
+            self.assertTrue(p.id != project.id)
 
     def test_create_delete_branch(self):
-        project_name = generate_random_name()
+        project_name = generate_random_name(prefix="test_create_delete_branch", length=3)
         project = self._api.create_project(project_name)
+        self._api.is_complete(project.id)
+        self._projects.append(project)
         self.assertEqual(project.name, project_name)
         branch = self._api.create_branch(project.id)
         self.assertEqual(project.name, project_name)
         self.assertEqual(branch.project_id, project.id)
         self._api.delete_branch(project.id, branch.id)
-        self._api.delete_project(project.id)
 
 
 class TestDictFilter(unittest.TestCase):

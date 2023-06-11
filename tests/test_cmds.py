@@ -3,6 +3,7 @@ import os
 import subprocess
 import unittest
 
+from pyneoncli.configfile import NeonConfigFile
 from pyneoncli.neonapi import NeonAPI
 from .utils import generate_random_name
 
@@ -10,11 +11,10 @@ from .utils import generate_random_name
 class CommandExecutionTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
-        self._apiKey = os.getenv("NEON_API_KEY")
-        self._api = NeonAPI(self._apiKey)
+        self._cfg = NeonConfigFile()
+        self._api = NeonAPI(self._cfg.api_key)
 
     def _test_command_execution(self, command):
-
         try:
             # Execute the command and capture the output
             output = subprocess.check_output(command, shell=True, universal_newlines=True).strip()
@@ -33,8 +33,8 @@ class CommandExecutionTestCase(unittest.TestCase):
 
         output = self._test_command_execution(f"neoncli list")
         starting_line_count = len(output.splitlines())
-        project_name = "test_project"
-        self.assertTrue(self._apiKey is not None, "NEON_API_KEY environment variable must be set")
+        project_name = generate_random_name(prefix="test_neon_command_project", length=3)
+        self.assertTrue(self._cfg.api_key, "neoncli.conf: api key not set")
         output = self._test_command_execution(f"neoncli project --create {project_name}")
         create_doc = json.loads(output)
         self.assertEqual(create_doc["name"], project_name)
@@ -58,7 +58,7 @@ class CommandExecutionTestCase(unittest.TestCase):
     def test_neon_command_branch(self):
 
         # create a project to test branches
-        project_name = "branch_test_project"
+        project_name = generate_random_name(prefix="test_neon_command_branch", length=3)
 
         output = self._test_command_execution(f"neoncli project --create {project_name}")
         branch_test_project_doc = json.loads(output)
@@ -80,28 +80,30 @@ class CommandExecutionTestCase(unittest.TestCase):
         self.assertEqual(delete_doc["id"], branch_id)
 
         output = self._test_command_execution(f"neoncli list --branches {project_id}")
-
         ending_line_count = len(output.splitlines())
-
         self.assertEqual(starting_line_count, ending_line_count)
+
+        delete_output = self._test_command_execution(f"neoncli --yes project --delete {project_id}")
+        delete_doc = json.loads(delete_output)
+        self.assertEqual(delete_doc["name"], project_name)
 
     def test_neon_operations(self):
 
-        project = self._api.create_project(generate_random_name())
-        ops = self._api.get_list_of_operations(project.id)
+        project = self._api.create_project(generate_random_name(prefix="test_neon_operations", length=3))
+        ops = self._api.get_operations(project.id)
         op = next(ops)
-        detail = self._api.get_operation_details(project.id, op.id)
+        detail = self._api.get_operation(project.id, op.id)
         output = self._test_command_execution(f"neoncli list  --operations {project.id}")
         self.assertTrue(len(output.splitlines()) > 0)
         output = self._test_command_execution(f"neoncli --nocolor list  --operation_detail {project.id}:{op.id}")
         op_doc = json.loads(output)
         self.assertEqual(op_doc["id"], op.id)
+        self._api.delete_project(project.id)
 
     def test_list_by_name(self):
-        project1 = self._api.create_project(generate_random_name())
-        project2 = self._api.create_project(generate_random_name())
+        project1 = self._api.create_project(generate_random_name(prefix="test_list_by_name", length=3))
+        project2 = self._api.create_project(generate_random_name(prefix="test_list_by_name", length=3))
         output = self._test_command_execution(f"neoncli list --project_name {project1.name}")
-        print(output)
         self._api.delete_project(project1.id)
         self._api.delete_project(project2.id)
 

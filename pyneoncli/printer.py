@@ -1,12 +1,12 @@
 import collections
 import json
 import sys
-from typing import Any, Iterable, Union
-import colorama
+from typing import Any
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import JsonLexer
 from pygments import highlight
 
+from pyneoncli.colortext import ColorText
 from pyneoncli.neon import NeonObject, NeonProject, NeonBranch
 
 
@@ -33,70 +33,13 @@ def flatten(d: dict, root: str = None):
                 yield f"{root}.{k}", v
 
 
-class ColorText:
-
-    def __init__(self, nocolor: False, std_file: object = sys.stdout, err_file: object = sys.stderr) -> None:
-        self._nocolor = nocolor
-        self._std_file = std_file
-        self._err_file = err_file
-        self._overhead = 0
-        if not self.plain_text():
-            self._overhead = len(self.green('x')) - len("x")
-
-    @property
-    def overhead(self):
-        return self._overhead
-
-    def plain_text(self) -> bool:
-        if self._std_file.isatty():
-            return self._nocolor
-        else:
-            return True
-
-    def color_text(self, color, msg: str) -> str:
-        if self.plain_text():
-            return msg
-        else:
-            return f"{color}{msg}{colorama.Style.RESET_ALL}"
-
-    def green(self, msg: str, end="") -> str:
-        return self.color_text(colorama.Fore.GREEN, msg)
-
-    def red(self, msg: str, end="") -> str:
-        return self.color_text(colorama.Fore.RED, msg)
-
-    def yellow(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.YELLOW, msg)
-
-    def blue(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.BLUE, msg)
-
-    def cyan(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.CYAN, msg)
-
-    def magenta(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.MAGENTA, msg)
-
-    def white(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.WHITE, msg)
-
-    def black(self, msg: str) -> str:
-        return self.color_text(colorama.Fore.BLACK, msg)
-
-    def bright(self, msg: str) -> str:
-        return self.color_text(colorama.Style.BRIGHT, msg)
-
-    def dim(self, msg: str) -> str:
-        return self.color_text(colorama.Style.DIM, msg)
-
-
 class Printer:
 
     def __init__(self, nocolor: bool = False, filters: list[str] = None) -> None:
         self._filters = filters
         self._nocolor = nocolor
         self._args = None
-        self._c = ColorText(nocolor=nocolor)
+        self._c = ColorText(no_color=nocolor)
 
     @property
     def args(self):

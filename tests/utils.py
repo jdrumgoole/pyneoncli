@@ -3,6 +3,10 @@ import string
 
 
 def generate_random_name(prefix: str = "", length: int = 10) -> str:
+    """
+
+    @rtype: object
+    """
     characters = string.ascii_letters + string.digits + '_'
     return f"{prefix}{''.join(random.choice(characters) for _ in range(length))}"
 

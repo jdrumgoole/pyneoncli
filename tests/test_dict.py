@@ -1,5 +1,7 @@
 import unittest
 from pyneoncli.printer import dict_filter, flatten
+from pyneoncli.neonliterals import NeonAPIPaths, NeonFunction as nf
+
 
 d = {
     "branch": {
@@ -8,6 +10,7 @@ d = {
         "cpu_used_sec": 0,
         "created_at": "2023-05-11T09:25:02Z",
         "creation_source": "console",
+
         "current_state": "ready",
         "data_transfer_bytes": 0,
         "id": "br-lingering-resonance-821551",
@@ -32,6 +35,7 @@ d = {
         }
     ]
 }
+
 
 class TestDict(unittest.TestCase):
     def test_dict_walk(self):
@@ -63,6 +67,18 @@ class TestDict(unittest.TestCase):
                     "f": 5 }}
         f = dict_filter(x, ["a", "b", "c.d"])
         print(f)
+
+    def test_literals(self):
+        self.assertTrue("project_id" in NeonAPIPaths.GET_BRANCHES.value)
+        s = NeonAPIPaths.GET_BRANCHES(project_id="1234")
+        self.assertEqual(s, "https://console.neon.tech/api/v2/projects/1234/branches")
+        s = NeonAPIPaths.GET_BRANCH( project_id="1234", branch_id="5678")
+        self.assertEqual(s, "https://console.neon.tech/api/v2/projects/1234/branches/5678")
+        s = NeonAPIPaths.GET_PROJECTS()
+        self.assertEqual(s, "https://console.neon.tech/api/v2/projects")
+
+        x = nf.project()
+        self.assertEqual(x, "project")
 
 
 if __name__ == '__main__':
