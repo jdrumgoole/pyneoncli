@@ -1,7 +1,9 @@
 import argparse
 import sys
 
-from pyneoncli.clicommands import CLIProject, CLIBranch, CLIEndPoint
+from pyneoncli.cliendpoint import CLIEndPoint
+from pyneoncli.clibranch import CLIBranch
+from pyneoncli.cliproject import CLIProject
 from pyneoncli.clilist import CLIList
 from pyneoncli.neonapiexceptions import NeonAPIException, NeonTimeoutException
 from pyneoncli.printer import Printer

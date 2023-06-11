@@ -5,7 +5,8 @@ from datetime import datetime
 import unittest
 from argparse import Namespace
 
-from pyneoncli.clicommands import CLIProject, CLIBranch
+from pyneoncli.clibranch import CLIBranch
+from pyneoncli.cliproject import CLIProject
 from pyneoncli.clilist import CLIList
 from pyneoncli.configfile import NeonConfigFile
 from pyneoncli.neon import NeonProject, NeonBranch
