@@ -6,7 +6,8 @@ This is a work in progress and this version is incomplete.
 
 This version only supports the Neon V2 API. 
 
-The program can read the NEON_API_KEY from the environment or it can he loaded from a .env field in the current working directory.
+The program can read the NEON_API_KEY from the environment or it can he loaded from a `neoncli.conf` in your home directory or
+the current working directory.
 
 ## Installation
 
